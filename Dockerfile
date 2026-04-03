@@ -16,8 +16,8 @@ COPY ./.prettierrc /app/
 COPY ./packages/server/package.json /app/packages/server/
 COPY ./packages/frontend/package.json /app/packages/frontend/
 
-# Install all dependencies with Yarn Modern
-RUN yarn install --immutable
+# Install Yarn 4.x via Corepack and install dependencies
+RUN corepack prepare --activate && yarn install --immutable
 
 
 # Build the back

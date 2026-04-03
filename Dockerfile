@@ -3,47 +3,47 @@ FROM node:24-alpine as common-deps
 
 WORKDIR /app
 
-# Enable Corepack for Yarn Modern (Yarn 4+)
-RUN corepack enable
+# Enable Corepack and prepare the specified Yarn version
+RUN corepack enable && corepack prepare yarn@4.5.1 --activate
 
 # Copy only the necessary files for dependency resolution
-COPY ./package.json ./yarn.lock ./tsconfig.base.json ./nx.json /app/
-COPY ./.yarnrc.yml /app/
-# Uncomment if you have a .yarn folder with releases/plugins
-# COPY ./.yarn /app/.yarn
+COPY ./package.json ./yarn.lock ./tsconfig.base.json ./nx.json ./.yarnrc.yml /app/
+# Copy the .yarn folder if it exists (necessary for some plugins/offline cache)
+COPY ./.yarn /app/.yarn
 
 COPY ./.prettierrc /app/
 COPY ./packages/server/package.json /app/packages/server/
 COPY ./packages/frontend/package.json /app/packages/frontend/
 
-# Install Yarn 4.x via Corepack and install dependencies
-RUN corepack install && yarn install --immutable
+# Install all dependencies with Yarn Modern
+RUN yarn install --immutable
 
 
-# Build the back
+# Build the backend
 FROM node:24-alpine as server-build
 WORKDIR /app
-RUN corepack enable
+RUN corepack enable && corepack prepare yarn@4.5.1 --activate
 
 COPY --from=common-deps /app /app
 COPY ./packages/server /app/packages/server
 
-RUN NX_DAEMON=false npx nx run server:build
+RUN NX_DAEMON=false yarn nx run server:build
 RUN mv /app/packages/server/dist /app/packages/server/build
-RUN NX_DAEMON=false npx nx run server:build:packageJson
+RUN NX_DAEMON=false yarn nx run server:build:packageJson
 RUN rm -rf /app/packages/server/dist && mv /app/packages/server/build /app/packages/server/dist
 
 
-# Build the front
+# Build the frontend
 FROM node:24-alpine as frontend-build
 WORKDIR /app
-RUN corepack enable
+RUN corepack enable && corepack prepare yarn@4.5.1 --activate
 
 ARG VITE_BACKEND_URL
 
 COPY --from=common-deps /app /app
 COPY ./packages/frontend /app/packages/frontend
-RUN NX_DAEMON=false npx nx build frontend
+# Use NX for frontend build too
+RUN NX_DAEMON=false yarn nx build frontend
 
 
 # Final stage: Run the application
@@ -73,7 +73,7 @@ ENV BACKEND_URL=https://api.avynt.com.br
 # Copy built applications from previous stages
 COPY --chown=1000 --from=server-build /app /app
 COPY --chown=1000 --from=server-build /app/packages/server /app/packages/server
-# Ensure frontend build is copied to the correct location for the server to serve (if needed)
+# Ensure frontend build is copied to the correct location for the server to serve
 COPY --chown=1000 --from=frontend-build /app/packages/frontend/build /app/packages/server/dist/frontend
 
 # Set metadata and labels

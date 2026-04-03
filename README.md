@@ -30,9 +30,9 @@
 
 ## Prerequisites
 Before installing, ensure you have the following installed:
-- **Node.js**: v22.x or higher
-- **npm**: v10.x or higher (or use Yarn/Pnpm)
-- **PostgreSQL**: v17.x or higher
+- **Node.js**: v24.x or higher
+- **Yarn**: v4.x (Enabled via Corepack)
+- **PostgreSQL**: v15.x or higher
 - **Git**: For cloning the repository
 - **WhatsApp Business API Account**: Approved account from Meta or a WhatsApp Business Solution Provider (BSP)
 
@@ -42,106 +42,65 @@ Before installing, ensure you have the following installed:
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/zaphalohq/zaphalo.git
+git clone https://github.com/hserr4/zaphalo.git
 cd zaphalo
 ```
 
 ### 2. Set Up Environment Variables
 Create `.env` files in both the backend and frontend directories.
 
-You can create your `.env` files by copying the provided `.env.example` files in each directory:
-
 #### Backend (e.g., `packages/server/.env`)
-- copy `.env.example` file in new `.env` file by this command
 ```bash
 cp packages/server/.env.example packages/server/.env
 ```
 
-- your backend `.env` file look like:
-```env
-# Use this for local setup
-NODE_ENV=development
-PG_DATABASE_URL=your_db_url
-APP_SECRET=replace_me_with_a_random_string
-WEBSOCKET_PORT=4000
-FRONTEND_URL=http://localhost:5173
-```
-
 #### Frontend (e.g., `packages/frontend/.env`)
-copy `.env.example` file in new `.env` file by this command
 ```bash
 cp packages/frontend/.env.example packages/frontend/.env
 ```
 
-- your frontend `.env` file look like:
-```env
-VITE_BACKEND_URL='http://localhost:3000'
-VITE_WEBSOCKET_URL='http://localhost:4000'
-```
-
-
 ### 3. Install Dependencies
-
-#### packages
-```bash 
-cd packages
-yarn install
-```
-
-#### Backend
+This project uses **Yarn Modern (v4)**. Enable it via Corepack:
 ```bash
-cd packages/server
-yarn install
-```
-
-#### Frontend
-```bash
-cd packages/frontend
+corepack enable
 yarn install
 ```
 
 ### 4. Set Up the Database
-
-1. **Run Migrations** (if using TypeORM migrations):
- - In a new terminal:
+1. **Run Migrations**:
+   - In a new terminal:
    ```bash
-   yarn nx start server
-   yarn nx command:prod server upgrade
-   yarn nx database:migrate:workspace:run server
+   yarn nx run server:build
+   yarn nx database:migrate:run server
    ```
 
 ### 5. Start the Backend
-In a new terminal:
-```bash
-cd packages/server
-yarn nx start
-```
-- The server will run on `http://localhost:3000` (GraphQL at `/graphql`, Webhook at `/webhook`) and Socket.IO on `ws://localhost:8080`.
-
-OR (from repo root, start the server project directly):
 ```bash
 yarn nx start server
 ```
+- The server will run on `http://localhost:3000` (GraphQL at `/graphql`, Webhook at `/webhook`).
 
 ### 6. Start the Frontend
-In a new terminal:
-```bash
-cd packages/client
-yarn nx start
-```
-- The React app will run on `http://localhost:5173` (default Vite port).
-
-OR (from repo root, start the frontend project directly):
 ```bash
 yarn nx start frontend
 ```
+- The React app will run on `http://localhost:5173`.
 
-### 7. Verify the Setup
-- Open your browser to `http://localhost:5173`.
-- Use GraphQL Yoga at `http://localhost:3000/graphql` to test queries.
-- Send a test message to your WhatsApp number and check if it appears in the app.
-- Test bulk messaging by uploading a contact list and sending a message.
+---
 
+## Docker & Coolify Deployment
+
+This project is optimized for deployment on **Coolify/OCI**.
+
+### Quick Deploy
+1. Point your domain (e.g., `api.avynt.com.br`) to your server IP.
+2. Link your GitHub repository in the Coolify dashboard.
+3. The included `Dockerfile` will automatically:
+   - Configure Node 24 and Yarn 4.5.1.
+   - Run NX builds for both server and frontend.
+   - Set up the database migrations on startup.
+
+---
 
 ## Usage
 1. **Integrate WhatsApp Number**:
@@ -152,19 +111,5 @@ yarn nx start frontend
    - Upload a CSV of phone numbers and send a single message to millions of recipients.
 4. **Real-Time Interaction**:
    - Use the app to reply to messages instantly via WebSocket.
-
-
-## Troubleshooting
-- **Database Connection Failed**:
-  - Check `.env` credentials and ensure PostgreSQL is running (`pg_ctl status` or `ps aux | grep postgres`).
-- **GraphQL Errors**:
-  - Validate the schema (`schema.gql`) and resolver logic.
-- **Bulk Messaging Limits**:
-  - Ensure compliance with WhatsApp’s rate limits and policies.
-
----
-
-## License
-This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ---

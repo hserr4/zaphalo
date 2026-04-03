@@ -1,23 +1,31 @@
 # Base image for common dependencies
-FROM node:22-alpine as common-deps
+FROM node:24-alpine as common-deps
 
 WORKDIR /app
 
+# Enable Corepack for Yarn Modern (Yarn 4+)
+RUN corepack enable
+
 # Copy only the necessary files for dependency resolution
 COPY ./package.json ./yarn.lock ./tsconfig.base.json ./nx.json /app/
+COPY ./.yarnrc.yml /app/
+# Uncomment if you have a .yarn folder with releases/plugins
+# COPY ./.yarn /app/.yarn
 
 COPY ./.prettierrc /app/
 COPY ./packages/server/package.json /app/packages/server/
 COPY ./packages/frontend/package.json /app/packages/frontend/
 
-# Install all dependencies
-RUN yarn && yarn cache clean && npx nx reset
+# Install all dependencies with Yarn Modern
+RUN yarn install --immutable
 
 
 # Build the back
-FROM common-deps as server-build
+FROM node:24-alpine as server-build
+WORKDIR /app
+RUN corepack enable
 
-# Copy sourcecode after installing dependences to accelerate subsequents builds
+COPY --from=common-deps /app /app
 COPY ./packages/server /app/packages/server
 
 RUN NX_DAEMON=false npx nx run server:build
@@ -27,16 +35,19 @@ RUN rm -rf /app/packages/server/dist && mv /app/packages/server/build /app/packa
 
 
 # Build the front
-FROM common-deps as frontend-build
+FROM node:24-alpine as frontend-build
+WORKDIR /app
+RUN corepack enable
 
 ARG VITE_BACKEND_URL
 
+COPY --from=common-deps /app /app
 COPY ./packages/frontend /app/packages/frontend
 RUN NX_DAEMON=false npx nx build frontend
 
 
 # Final stage: Run the application
-FROM node:22-alpine as zaphalo
+FROM node:24-alpine as zaphalo
 
 # Used to run healthcheck in docker
 RUN apk add --no-cache curl jq postgresql-client

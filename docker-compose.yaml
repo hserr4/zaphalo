@@ -2,7 +2,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: packages/server/Dockerfile
+      dockerfile: Dockerfile
     command: ["yarn", "start:prod"]
     restart: always
     volumes:
